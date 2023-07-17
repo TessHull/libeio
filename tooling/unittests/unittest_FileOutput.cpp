@@ -7,7 +7,7 @@
 
 TEST(FileOut, CanOpenFileAndWrite)
 {
-    std::string_view cFileName{"tmp/COFAW.txt"};
+    std::string_view cFileName{"tmp/CanOpenFileAndWrite.txt"};
     std::string_view cTestData{"Hello World!"};
     {
         eio::FileOutput UUT(cFileName);
@@ -24,4 +24,15 @@ TEST(FileOut, CanOpenFileAndWrite)
         }
     }
     EXPECT_STREQ(cTestData.data(), DataFromFile.c_str());
+}
+
+TEST(FileOut, CanHandleAreferenceType)
+{
+    std::string_view cFileName{"tmp/CanHandleAreferenceType.txt"};
+    std::string_view cTestData{"Hello World!"};
+    {
+        eio::FileOutput UUT(cFileName);
+        UUT.ref(5);
+        UUT.print(cTestData);
+    }
 }

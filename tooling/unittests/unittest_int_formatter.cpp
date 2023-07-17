@@ -48,5 +48,5 @@ TEST(IntFormatter, neguint)
     std::string Result("");
     auto retval{UUT.emit(Result)};
     EXPECT_TRUE(retval);
-    EXPECT_STREQ(Result.c_str(), "4294967296");
+    EXPECT_STREQ(Result.c_str(), "4294967295");
 }

@@ -1,0 +1,76 @@
+#include <concepts>
+#include <cstddef>
+#include <span>
+
+namespace eio
+{
+    enum class SignHandling
+    {
+        MagnitudeOnly,
+        NothingAndMinus,
+        PlusAndMinus,
+        SpaceAndMinus,
+    };
+    template <SignHandling Sgn = SignHandling::MagnitudeOnly, std::integral T, typename C >
+    size_t itoa(T from, std::span<C> to, unsigned base = 10)
+    {
+        constexpr C cDigits[]{"0123456789abcdefghijklmnopqrstuvwxyz"};
+        C sign{'\0'};
+        if constexpr (Sgn == SignHandling::PlusAndMinus)
+        {
+            sign = '+';
+        }
+        else if constexpr (Sgn == SignHandling::SpaceAndMinus)
+        {
+            sign = ' ';
+        }
+        if constexpr (std::signed_integral<T>)
+        {
+            if (from < 0)
+            {
+                from = -from;
+                if constexpr (Sgn != SignHandling::MagnitudeOnly)
+                {
+                    sign = '-';
+                }
+            }
+        }
+        size_t idx=0;
+        if (from == 0)
+        {
+            to[0] = '0';
+            idx = 1;
+        }
+        else
+        {
+            while(from != 0)
+            {
+                auto remainder{from % base};
+                if (idx < to.size())
+                {
+                    to[idx++] = cDigits[remainder];
+                }
+                from /= base;
+            }
+        }
+        if (idx < to.size())
+        {
+            if (sign != '\0')
+            {
+                to[idx++] = sign;
+            }
+            for (size_t front{0}, back{idx-1}; front < back; ++front, --back)
+            {
+                auto tmp{to[front]};
+                to[front] = to[back];
+                to[back] = tmp;
+            }
+            to[idx] = '\0';
+        }
+        else
+        {
+            to[0] = '\0';
+        }
+        return idx;
+    }
+}//namespace eio

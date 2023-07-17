@@ -21,6 +21,7 @@ FileOutput::FileOutput(std::string_view FilePath)
 }
 FileOutput::~FileOutput()
 {
+    purge();
     if (_managePointer)
     {
         CloseHandle(_file);
@@ -29,7 +30,14 @@ FileOutput::~FileOutput()
 }
 void FileOutput::print(std::string_view format)
 {
+    for (auto fmtr : _params)
+    {
+        std::string tmp;
+        fmtr->emit(tmp);
+        WriteFile(_file, tmp.c_str(), tmp.size(), nullptr, nullptr);
+    }
     WriteFile(_file, format.data(),format.size(), nullptr, nullptr);
+    purge();
 }
 
 }//eio

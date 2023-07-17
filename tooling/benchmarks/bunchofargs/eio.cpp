@@ -2,8 +2,8 @@
 
 void bunchofargs(int a, float b, std::string_view c)
 {
-    eio::out.param(a).param(b);
-    eio::out.param(c).param(a*b).print("With values a ({}), b ({:.6f}), and function c ({}), the result is {:.6f}\n");
+    eio::out.ref(a).ref(b);
+    eio::out/*.ref(c).val(a*b)*/.print("With values a ({}), b ({:.6f}), and function c ({}), the result is {:.6f}\n");
 }
 
 int main()
