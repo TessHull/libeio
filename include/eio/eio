@@ -1,0 +1,32 @@
+#include "formatters"
+#include <vector>
+
+namespace eio
+{
+    class output
+    {
+        public:
+        virtual ~output(){}
+        virtual void print(std::string_view format) = 0;
+        // virtual output& param(formatter<T> const& formattable);
+        template<typename P>
+        output& param(P const& arg)
+        {
+            return *this;
+        }
+        protected:
+        std::vector<formatter*> _params;
+    };
+    class FileOutput : public output
+    {
+        public:
+        FileOutput(void* File);
+        FileOutput(std::string_view FilePath);
+        virtual ~FileOutput();
+        void print(std::string_view format) override;
+        private:
+        void* _file{nullptr};
+        bool _managePointer{false};
+    };
+    extern FileOutput out;
+}

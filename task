@@ -1,0 +1,108 @@
+#!/bin/bash
+WORKING_DIR=tmp
+BENCHMARK_OUT=${WORKING_DIR}/benchmarks
+BENCHMARK_SRC=tooling/benchmarks
+BENCHMARK_ARGS="-static -Og --std=c++20 -ffunction-sections -fdata-sections -Wl,--gc-sections"
+STRIP_ARGS="-g --strip-dwo --strip-unneeded"
+[ "${MSYSTEM+defined}" == "defined" ] && PLATFORM_ENV="MSYS2"
+EXEC_EXT=""
+[ "${PLATFORM_ENV}" == "MSYS2" ] && EXEC_EXT=".exe"
+BENCHMARK_GROUPS=( helloworld bunchofargs)
+BENCHMARK_IMPLE=(  )
+BENCHMARK_IMPLE+=( streams printf format vformat formatarr string array )
+BENCHMARK_IMPLE+=( eio )
+EIO_INSTALL_PREFIX=${WORKING_DIR}/rfs
+LIBEIO_BUILD=${WORKING_DIR}/build_libeio
+LIBEIO_OUT=${EIO_INSTALL_PREFIX}/lib
+# EIO_ARGS="-Iinclude -L${LIBEIO_OUT} -leio"
+EIO_ARGS="-Iinclude -L${LIBEIO_BUILD} -leio"
+
+function help:benchmarks(){
+    echo "run the simplistic comparative benchmarks"
+}
+function task:benchmarks(){
+    [ ! -e ${LIBEIO_BUILD}/libeio.a ] && task:build
+    for group in ${BENCHMARK_GROUPS[@]}; do
+        for imple in ${BENCHMARK_IMPLE[@]}; do
+            if [ -e ${BENCHMARK_SRC}/${group}/${imple}.cpp ]; then
+                echo "Building ${group}/${imple}..."
+                AditionalArgs=""
+                [ "${imple}" == "eio" ] && AditionalArgs=${EIO_ARGS}
+                benchmark ${group} ${imple} ${AditionalArgs} &
+            # else
+            #     echo "skipping ${group}/${imple}... Does Not Exist."
+            fi
+        done
+        wait
+        echo "Stripped sizes of '${group}' comparison:"
+        ls -alS ${BENCHMARK_OUT}/${group}/*-stripped${EXEC_EXT} | sed -E 's|[-rwxs]+ [0-9] [0-9a-zA-Z]+ [0-9a-zA-Z]+ +([0-9]+) +.* tmp/benchmarks/[a-z]+/([a-z]+)-stripped.exe|\2,\1|'  | tee ${BENCHMARK_OUT}/${group}-sizes.csv | column -t -s, -R1,2
+    done
+}
+
+function benchmark(){
+    #$1 benchmarkGroup
+    #$2 benchmarkName
+    #$3 Additional Arguments
+    BM_Group=${1}
+    shift
+    BM_Name=${1}
+    shift
+    AddArgs=${@:-""}
+    BDIR=${BENCHMARK_OUT}/${BM_Group}
+    mkdir -p ${BDIR}
+    # [ "${AddArgs}" != "" ] && set -x
+    g++ -o ${BDIR}/${BM_Name} ${BENCHMARK_SRC}/${BM_Group}/${BM_Name}.cpp ${BENCHMARK_ARGS} ${AddArgs}
+    # [ "${AddArgs}" != "" ] && set +x
+    if [ -e ${BDIR}/${BM_Name}${EXEC_EXT} ]; then
+        strip ${STRIP_ARGS} -o ${BDIR}/${BM_Name}-stripped${EXEC_EXT} ${BDIR}/${BM_Name}${EXEC_EXT}
+        objdump -D ${BDIR}/${BM_Name}${EXEC_EXT} > ${BDIR}/${BM_Name}.asm
+        ${BDIR}/${BM_Name}${EXEC_EXT} > ${BDIR}/${BM_Name}.txt
+        diff ${BENCHMARK_SRC}/${BM_Group}/reference.txt ${BDIR}/${BM_Name}.txt > /dev/null
+        [ $? != 0 ] && echo "Benchmark "${BM_Group}/${BM_Name}" did not match the reference output!"
+    fi
+}
+
+function help:clean(){
+    echo "erase the working directory"
+}
+function task:clean(){
+    rm -rf ${WORKING_DIR}
+}
+
+function help:build(){
+    echo "Build libeio and run the unit tests"
+}
+function task:build(){
+    meson setup --prefix $(realpath -m ${EIO_INSTALL_PREFIX}) ${LIBEIO_BUILD} .
+    meson compile -C ${LIBEIO_BUILD}
+    [ $? == 0 ] && [ -e ${LIBEIO_BUILD}/tooling/unittests/testrunner${EXEC_EXT} ] && ${LIBEIO_BUILD}/tooling/unittests/testrunner${EXEC_EXT}
+    # meson test -C ${LIBEIO_BUILD}
+    # meson install -C ${LIBEIO_BUILD}
+}
+function help:all(){
+    echo "build libeio then run the benchmarks and unit tests"
+}
+function task:all(){
+    task:clean
+    task:build
+    task:benchmarks
+}
+function GetWords(){
+    #$1 type of function prefix to fetch
+    compgen -A function | sed -nE -e "s/^${1}:(.*)/\1/p"
+    exit 0
+}
+function task:usage(){
+    echo "usage: ${0} <task>"
+    echo "where [task] is one of:"
+    tasks=($(GetWords task))
+    for t in ${tasks[@]}; do
+        if [ "$(type -t "help:${t}")" == "function" ]; then
+            printf "%24s\t-\t%s\n" "${t}" "$(help:${t})"
+        else
+            printf "%24s\n" "${t}"
+        fi
+    done
+}
+
+task:${@:-usage}

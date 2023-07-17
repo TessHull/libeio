@@ -1,0 +1,102 @@
+#include <cstdint>
+#include <cstdlib>
+#include <span>
+#include <string>
+#include <string_view>
+#include <array>
+#include <concepts>
+    // #include <iostream>
+    // #include <iomanip>
+
+namespace eio
+{
+    class formatter
+    {
+        public:
+        formatter(void const* obj, std::string_view fmt):_object(obj), _format(fmt){}
+        virtual ~formatter(){};
+        virtual bool emit(std::string& targ) = 0;
+        protected:
+        void const* _object{nullptr};
+        std::string_view _format{""};
+    };
+    template<std::integral T>
+    class int_formatter : public formatter
+    {
+        public:
+        virtual ~int_formatter(){};
+        int_formatter(T const& param, std::string_view fmt = "")
+        : formatter(&param, fmt)
+        {}
+        bool emit(std::string& targ) override
+        {
+            std::array<char, 64> buf;
+                itoa(*static_cast<T const*>(_object), buf.data(), 10);
+            // if constexpr (std::signed_integral<T>)
+            // {
+            //     itoa(*static_cast<T const*>(_object), buf.data(), 10);
+            // }
+            // else
+            // {
+            //     utoa(*static_cast<T const*>(_object), buf.data(), 10);
+            // }
+            targ = buf.data();
+            return true;
+        }
+    };
+    template<std::floating_point T>
+    class float_formatter : public formatter
+    {
+        public:
+        virtual ~float_formatter(){};
+        float_formatter(T const& param, std::string_view fmt = "")
+        : formatter(&param, fmt)
+        {}
+        bool emit(std::string& targ) override
+        {
+            std::array<char, 64> buf_int;
+            std::array<char, 64> buf_frac;
+            T tmp{*static_cast<T const*>(_object)};
+            // std::cerr << "emit: " << std::setprecision(12) << tmp << std::endl;
+            int int_part{static_cast<int>(tmp)};
+            T Remainder{tmp - int_part};
+            unsigned float_part{static_cast<unsigned>(Remainder * 1000000)};
+            itoa(int_part, buf_int.data(), 10);
+            itoa(float_part, buf_frac.data(), 10);
+            std::string fracString{buf_frac.data()};
+            targ = std::string(buf_int.data()) + '.';
+            for (int i = fracString.size(); i < 6; ++i)
+            {
+                targ = targ + '0';
+            }
+            targ = targ + fracString;
+            return true;
+        }
+    };
+    class generic_formatter : public formatter
+    {
+        public:
+        virtual ~generic_formatter(){}
+        generic_formatter(std::span<uint8_t> data, std::string_view fmt = "")
+        : formatter(data.data(), fmt)
+        , _data(data)
+        {}
+        bool emit(std::string& targ) override
+        {
+            constexpr std::array cNibblesLower{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+            targ = "[hex: ";
+            for ( auto val : _data)
+            {
+                auto upper{(val >> 4) & 0x0f};
+                auto lower{val & 0x0f};
+                targ.push_back(cNibblesLower[upper]);
+                targ.push_back(cNibblesLower[lower]);
+                targ.push_back(' ');
+            }
+            targ += "(" + std::to_string(_data.size()) + " bytes)]";
+            return true;
+        }
+        protected:
+        std::span<uint8_t> _data;
+    };
+}//eio
