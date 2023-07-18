@@ -1,0 +1,55 @@
+#include <span>
+
+namespace eio
+{
+    template<typename T>
+    class basic_emitter
+    {
+        public:
+        virtual ~basic_emitter(){};
+        virtual bool emit(T arg) = 0;
+        virtual bool emit(std::span<T const> arg) = 0;
+    };
+    using emitter = basic_emitter<char>;
+    template<typename T>
+    class basic_span_emitter : public basic_emitter<T>
+    {
+        public:
+        basic_span_emitter(std::span<T> spn):_span(spn){}
+        bool emit(T arg) override
+        {
+            if (_used < _span.size())
+            {
+                _span[_used] = arg;
+                ++_used;
+                return true;
+            }
+            return false;
+        }
+        bool emit(std::span<T const> arg) override
+        {
+            if (_used + arg.size() < _span.size())
+            {
+                for(auto val: arg)
+                {
+                    if (val == '\0')
+                    {
+                        break;
+                    }
+                    _span[_used] = val;
+                    ++_used;
+                }
+                return true;
+            }
+            return false;
+        }
+        std::span<T>::size_type size()const{return _used;}
+        std::span<T> span()const{return _span.subspan(0, _used);}
+        T* data()const{return _span.data();}
+        std::span<T>::size_type capacity()const{return _span.size();}
+        private:
+        std::span<T> _span;
+        std::span<T>::size_type _used{0};
+    };
+    using span_emitter = basic_span_emitter<char>;
+}//namespace eio

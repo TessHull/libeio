@@ -1,0 +1,35 @@
+#include "emitters"
+#include <string>
+
+namespace eio
+{
+    template<typename T>
+    class basic_string_emitter: public basic_emitter<T>
+    {
+        public:
+        using str_type = std::basic_string<T, std::char_traits<T>, std::allocator<T>>;
+        basic_string_emitter(): _str(new str_type("")), _managePointer(true){}
+        basic_string_emitter(str_type & str): _str(&str){}
+        ~basic_string_emitter()
+        {
+            if (_managePointer)
+            {
+                delete _str;
+            }
+        }
+        virtual bool emit(T arg){_str->append(1, arg); return true;}
+        virtual bool emit(std::span<T const> arg)
+        {
+            _str->append(arg.begin(), arg.end());
+            return true;
+        }
+        str_type& str()const
+        {
+            return *_str;
+        }
+        private:
+        str_type* _str{nullptr};
+        bool _managePointer{false};
+    };
+    using string_emitter = basic_string_emitter<char>;
+}

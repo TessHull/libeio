@@ -1,0 +1,19 @@
+#include "emitters"
+#include <string_view>
+
+namespace eio
+{
+    template<typename T>
+    class basic_file_emitter: public basic_emitter<T>
+    {
+        public:
+        basic_file_emitter(void* File);
+        basic_file_emitter(std::string_view FilePath);
+        virtual bool emit(T arg);
+        virtual bool emit(std::span<T const> arg);
+        private:
+        void* _file{nullptr};
+        bool _managePointer{false};
+    };
+    using file_emitter = basic_file_emitter<char>;
+}

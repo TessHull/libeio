@@ -80,6 +80,8 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "xutility": "cpp",
-        "convert": "cpp"
+        "convert": "cpp",
+        "string_emitter": "cpp",
+        "emitters": "cpp"
     },
 }

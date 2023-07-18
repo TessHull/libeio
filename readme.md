@@ -78,6 +78,8 @@ To build the library (such as it is) and the benchmarks and unittests, from an M
 
 # eio layout concepts
 
+the following source is the initial concept on the useage of libeio. This started the project. It is likely out of date, and may be updated in the future.
+
 ```cpp
 #include <eio/eio.hpp>
 
@@ -161,4 +163,32 @@ We have 3 args. Before the first format line we had 3 args, after the format, we
 004 12345678
 bStruct: a = 4669, b = 305419896
 
+```
+
+# Current structure of libeio classes
+
+```puml
+@startuml
+class output{
+  +val(T)
+  +ref(T const&)
+  +ref(formatter &)
+  +write(formatString)
+  +writeln(formatString)
+}
+class emitter
+class string_emitter
+class file_emitter
+class formatter
+class int_formatter
+class float_formatter
+class custom_formatter
+string_emitter .up.|> emitter
+file_emitter .up.|> emitter
+int_formatter .up.|> formatter
+float_formatter .up.|> formatter
+custom_formatter .up.|> formatter
+emitter -up-> output
+output -right- formatter
+@enduml
 ```
