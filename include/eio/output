@@ -1,0 +1,100 @@
+#pragma once
+#include "formatters"
+#include "emitters"
+#include <vector>
+
+namespace eio
+{
+    class output
+    {
+    public:
+        output(emitter &outMech) : _emitter(outMech) {}
+        virtual ~output() { purge(); }
+        virtual void print(std::string_view format)
+        {
+            // int nextParam{0};
+            // for (auto iter{format.begin()}; iter != format.end(); ++iter)
+            // {
+            //     if (*iter == '{')
+            //     {
+            //         if (*(iter + 1) == '{')
+            //         {
+            //             //escaped {, emit it.
+
+            //         }
+            //     }
+            // }
+            _emitter.emit(std::span<char const>(format.data(), format.size()));
+            purge();
+        }
+        // virtual output& param(formatter<T> const& formattable);
+        template <typename P>
+        output &ref(P const &arg)
+        {
+            // if constexpr (is_formatter<P>)
+            // {
+            //     _params.push_back(&arg);
+            // }
+            if constexpr (std::integral<P>)
+            {
+                formatter *tmp{nullptr};
+                tmp = new int_formatter(arg);
+                _params.push_back(tmp);
+            }
+            else if constexpr (std::floating_point<P>)
+            {
+                formatter *tmp{nullptr};
+                tmp = new float_formatter(arg);
+                _params.push_back(tmp);
+            }
+            else
+            {
+                formatter *tmp{nullptr};
+                tmp = new generic_formatter(arg);
+                _params.push_back(tmp);
+            }
+            return *this;
+        }
+        template <typename P>
+        output &val(P arg)
+        {
+            // if constexpr (is_formatter<P>)
+            // {
+            //     _params.push_back(&arg);
+            // }
+            if constexpr (std::integral<P>)
+            {
+                formatter *tmp{nullptr};
+                tmp = new int_formatter(arg);
+                _params.push_back(tmp);
+            }
+            else if constexpr (std::floating_point<P>)
+            {
+                formatter *tmp{nullptr};
+                tmp = new float_formatter(arg);
+                _params.push_back(tmp);
+            }
+            else
+            {
+                formatter *tmp{nullptr};
+                tmp = new generic_formatter(arg);
+                _params.push_back(tmp);
+            }
+            return *this;
+        }
+
+    protected:
+        void purge()
+        {
+            for (auto *ptr : _params)
+            {
+                delete ptr;
+            }
+            _params.clear();
+        }
+        emitter &_emitter;
+        std::array<formatter, 10> _formatters{};
+        std::vector<formatter *> _params{};
+    };
+    
+}

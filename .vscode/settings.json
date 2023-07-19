@@ -82,6 +82,7 @@
         "xutility": "cpp",
         "convert": "cpp",
         "string_emitter": "cpp",
-        "emitters": "cpp"
+        "emitters": "cpp",
+        "file_emitter": "cpp"
     },
 }

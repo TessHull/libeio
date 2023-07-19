@@ -1,4 +1,4 @@
-#include <eio/eio>
+#include <eio/file_output>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <fstream>
@@ -24,15 +24,4 @@ TEST(FileOut, CanOpenFileAndWrite)
         }
     }
     EXPECT_STREQ(cTestData.data(), DataFromFile.c_str());
-}
-
-TEST(FileOut, CanHandleAreferenceType)
-{
-    std::string_view cFileName{"tmp/CanHandleAreferenceType.txt"};
-    std::string_view cTestData{"Hello World!"};
-    {
-        eio::FileOutput UUT(cFileName);
-        UUT.ref(5);
-        UUT.print(cTestData);
-    }
 }

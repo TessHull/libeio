@@ -1,4 +1,4 @@
-#include <eio/eio>
+#include <eio/formatters>
 #include <gtest/gtest.h>
 
 TEST(GenericFormatter, UnsignedInt)

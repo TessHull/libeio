@@ -1,0 +1,24 @@
+#pragma once
+#include "output"
+#include "file_emitter"
+
+namespace eio
+{
+    class FileOutput : public output
+    {
+    public:
+        FileOutput(void *File)
+            : output(_femit), _femit(File)
+        {
+        }
+        FileOutput(std::string_view FilePath)
+            : output(_femit), _femit(FilePath.data())
+        {
+        }
+        virtual ~FileOutput() {}
+        void print(std::string_view format) override { output::print(format); }
+
+    private:
+        file_emitter _femit;
+    };
+}
