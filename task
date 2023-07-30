@@ -85,7 +85,7 @@ function help:all(){
 function task:all(){
     task:clean
     task:build
-    task:benchmarks
+    [ $? == 0 ] && task:benchmarks
 }
 function GetWords(){
     #$1 type of function prefix to fetch

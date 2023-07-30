@@ -14,6 +14,7 @@ test_src = [
     'unittest_float_formatter.cpp',
     'unittest_generic_formatter.cpp',
     'unittest_string_emitter.cpp',
+    'unittest_output.cpp',
 ]
 testrunner = executable('testrunner', sources: [test_src], link_with: [libeio, gtest_lib], include_directories: [libeio_Incs, gtest_include])
 test('unit tests', testrunner)

@@ -83,6 +83,7 @@
         "convert": "cpp",
         "string_emitter": "cpp",
         "emitters": "cpp",
-        "file_emitter": "cpp"
+        "file_emitter": "cpp",
+        "output": "cpp"
     },
 }

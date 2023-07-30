@@ -2,11 +2,16 @@
 #include "formatters"
 #include "emitters"
 #include <vector>
+// #include <iostream>
 
 namespace eio
 {
     class output
     {
+        enum class fmtStrState{
+            normal,
+            formatSpecifier,
+        };
     public:
         output(emitter &outMech) : _emitter(outMech) {}
         virtual ~output() { purge(); }
@@ -24,7 +29,72 @@ namespace eio
             //         }
             //     }
             // }
-            _emitter.emit(std::span<char const>(format.data(), format.size()));
+            std::span<std::string_view::value_type const> chunk(format.data(), format.size());
+            std::span<std::string_view::value_type const> formatSpec;
+            size_t soffset{0};
+            ssize_t eoffset{0};
+            size_t eend{0};
+            [[maybe_unused]] fmtStrState state{fmtStrState::normal};
+            [[maybe_unused]] size_t paramIdx{0};
+            for(auto iter{format.begin()} ; iter != format.end(); ++iter)
+            {
+                eoffset = (iter - format.begin()) + 1;
+                eend = eoffset - soffset;
+                // std::cerr << "ls eoffset: " << eoffset << " eend: " << eend << "\n";
+                if (*iter == '{')
+                {
+                    if (*(iter + 1) == '{')
+                    {
+        // std::cerr << "{{soffset: " << soffset << " eend: " << eend << "\n";
+                        _emitter.emit(chunk.subspan(soffset, eend));
+                        ++iter;
+                    }
+                    else
+                    {
+                        //start a format substring
+                // std::cerr << "paramspec startsoffset: " << soffset << " eend: " << eend << "\n";
+                        _emitter.emit(chunk.subspan(soffset, eend - 1));
+                        // _emitter.emit('#');
+                        // soffset = eoffset;
+                        state = fmtStrState::formatSpecifier;
+                    }
+                    soffset = (iter + 1) - format.begin();
+                }
+                else if (*iter == '}')
+                {
+                    if (*(iter + 1)  == '}')
+                    {
+                // std::cerr << "}}soffset: " << soffset << " eend: " << eend << "\n";
+                        _emitter.emit(chunk.subspan(soffset, eend));
+                        ++iter;
+                        soffset = (iter + 1) - format.begin();
+                    }
+                    else if (state == fmtStrState::formatSpecifier)
+                    {
+                        // std::cerr << "param spec soffset: " << soffset << " eend: " << eend << "\n";
+                        formatSpec = chunk.subspan(soffset, eend - 1);
+                        soffset = eoffset;
+
+                        // _emitter.emit('|');
+                        // _emitter.emit(formatSpec);
+                        // _emitter.emit('|');
+                        if (paramIdx < _params.size())
+                        {
+                            std::string tmp;
+                            _params[paramIdx]->emit(tmp);
+                            _emitter.emit(tmp);
+                            ++paramIdx;
+                        }
+
+                    }
+                }
+            }
+            if (soffset != format.size())
+            {
+                // std::cerr << "soffset: " << soffset << " eend: " << eend << "\n";
+                _emitter.emit(chunk.subspan(soffset, eend));
+            }
+            // _emitter.emit(std::span<char const>(format.data(), format.size()));
             purge();
         }
         // virtual output& param(formatter<T> const& formattable);
@@ -47,10 +117,16 @@ namespace eio
                 tmp = new float_formatter(arg);
                 _params.push_back(tmp);
             }
+            else if constexpr(std::is_same<P, std::string_view>())
+            {
+                formatter *tmp{nullptr};
+                tmp = new stringview_formatter(arg);
+                _params.push_back(tmp);
+            }
             else
             {
                 formatter *tmp{nullptr};
-                tmp = new generic_formatter(arg);
+                tmp = new generic_formatter(std::span<uint8_t const>(reinterpret_cast<uint8_t const*>(&arg), sizeof(arg)));
                 _params.push_back(tmp);
             }
             return *this;
@@ -72,6 +148,12 @@ namespace eio
             {
                 formatter *tmp{nullptr};
                 tmp = new float_formatter(arg);
+                _params.push_back(tmp);
+            }
+            else if constexpr(std::is_same<P, std::string_view>())
+            {
+                formatter *tmp{nullptr};
+                tmp = new stringview_formatter(arg);
                 _params.push_back(tmp);
             }
             else

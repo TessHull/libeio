@@ -73,11 +73,27 @@ namespace eio
             return true;
         }
     };
+
+    class stringview_formatter : public formatter
+    {
+        public:
+        virtual ~stringview_formatter(){};
+        stringview_formatter(std::string_view param, std::string_view fmt = "")
+        : formatter(std::span<uint8_t const>(reinterpret_cast<uint8_t const*>(param.data()), param.size()), fmt)
+        {}
+        bool emit(std::string& targ) override
+        {
+            targ.clear();
+            auto tmp{std::string_view(reinterpret_cast<char const*>(_object.data()), _object.size())};
+            targ.append(tmp.begin(), tmp.end());
+            return true;
+        }
+    };
     class generic_formatter : public formatter
     {
         public:
         virtual ~generic_formatter(){}
-        generic_formatter(std::span<uint8_t> data, std::string_view fmt = "")
+        generic_formatter(std::span<uint8_t const> data, std::string_view fmt = "")
         : formatter(data, fmt)
         {}
         bool emit(std::string& targ) override
