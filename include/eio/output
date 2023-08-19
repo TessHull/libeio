@@ -29,8 +29,8 @@ namespace eio
             //         }
             //     }
             // }
-            std::span<std::string_view::value_type const> chunk(format.data(), format.size());
-            std::span<std::string_view::value_type const> formatSpec;
+            cspan chunk(reinterpret_cast<character const *>(format.data()), format.size());
+            cspan formatSpec;
             size_t soffset{0};
             ssize_t eoffset{0};
             size_t eend{0};
@@ -46,14 +46,14 @@ namespace eio
                     if (*(iter + 1) == '{')
                     {
         // std::cerr << "{{soffset: " << soffset << " eend: " << eend << "\n";
-                        _emitter.emit(chunk.subspan(soffset, eend));
+                        _emitter.emit_span(chunk.subspan(soffset, eend));
                         ++iter;
                     }
                     else
                     {
                         //start a format substring
                 // std::cerr << "paramspec startsoffset: " << soffset << " eend: " << eend << "\n";
-                        _emitter.emit(chunk.subspan(soffset, eend - 1));
+                        _emitter.emit_span(chunk.subspan(soffset, eend - 1));
                         // _emitter.emit('#');
                         // soffset = eoffset;
                         state = fmtStrState::formatSpecifier;
@@ -65,7 +65,7 @@ namespace eio
                     if (*(iter + 1)  == '}')
                     {
                 // std::cerr << "}}soffset: " << soffset << " eend: " << eend << "\n";
-                        _emitter.emit(chunk.subspan(soffset, eend));
+                        _emitter.emit_span(chunk.subspan(soffset, eend));
                         ++iter;
                         soffset = (iter + 1) - format.begin();
                     }
@@ -80,9 +80,7 @@ namespace eio
                         // _emitter.emit('|');
                         if (paramIdx < _params.size())
                         {
-                            std::string tmp;
-                            _params[paramIdx]->emit(tmp);
-                            _emitter.emit(tmp);
+                            _params[paramIdx]->emit(_emitter);
                             ++paramIdx;
                         }
 
@@ -92,7 +90,7 @@ namespace eio
             if (soffset != format.size())
             {
                 // std::cerr << "soffset: " << soffset << " eend: " << eend << "\n";
-                _emitter.emit(chunk.subspan(soffset, eend));
+                _emitter.emit_span(chunk.subspan(soffset, eend));
             }
             // _emitter.emit(std::span<char const>(format.data(), format.size()));
             purge();

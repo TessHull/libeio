@@ -51,7 +51,7 @@ function benchmark(){
     BDIR=${BENCHMARK_OUT}/${BM_Group}
     mkdir -p ${BDIR}
     # [ "${AddArgs}" != "" ] && set -x
-    g++ -o ${BDIR}/${BM_Name} ${BENCHMARK_SRC}/${BM_Group}/${BM_Name}.cpp ${BENCHMARK_ARGS} ${AddArgs}
+    g++ -o ${BDIR}/${BM_Name} -Wl,-Map=${BDIR}/${BM_Name}.map ${BENCHMARK_SRC}/${BM_Group}/${BM_Name}.cpp ${BENCHMARK_ARGS} ${AddArgs}
     # [ "${AddArgs}" != "" ] && set +x
     if [ -e ${BDIR}/${BM_Name}${EXEC_EXT} ]; then
         strip ${STRIP_ARGS} -o ${BDIR}/${BM_Name}-stripped${EXEC_EXT} ${BDIR}/${BM_Name}${EXEC_EXT}

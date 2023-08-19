@@ -1,9 +1,9 @@
 
 #pragma once
 #include "convert"
+#include "emitters"
 #include <cstdint>
 #include <span>
-#include <string>
 #include <string_view>
 #include <array>
 #include <concepts>
@@ -18,9 +18,8 @@ namespace eio
         formatter(){}
         formatter(std::span<uint8_t const> obj, std::string_view fmt):_object(obj), _format(fmt){}
         virtual ~formatter(){};
-        virtual bool emit(std::string& targ)
+        virtual bool emit([[maybe_unused]]emitter& targ)
         {
-            targ = "";
             return false;
         }
         protected:
@@ -35,12 +34,12 @@ namespace eio
         int_formatter(T const& param, std::string_view fmt = "")
         : formatter(std::span<uint8_t const>(reinterpret_cast<uint8_t const*>(&param),1), fmt)
         {}
-        bool emit(std::string& targ) override
+        bool emit(emitter& targ) override
         {
-            std::array<char, 64> buf;
+            std::array<character, 64> buf;
             T const* tmp{reinterpret_cast<T const*>(_object.data())};
-            [[maybe_unused]]auto characters{itoa<SignHandling::NothingAndMinus>(*tmp, std::span<char>(buf))};
-            targ = buf.data();
+            [[maybe_unused]]auto characters{itoa<SignHandling::NothingAndMinus>(*tmp, span(buf))};
+            targ.emit(string_view(buf.data(), characters));
             return true;
         }
     };
@@ -52,24 +51,25 @@ namespace eio
         float_formatter(T const& param, std::string_view fmt = "")
         : formatter(std::span<uint8_t const>(reinterpret_cast<uint8_t const*>(&param),1), fmt)
         {}
-        bool emit(std::string& targ) override
+        bool emit(emitter& targ) override
         {
-            std::array<char, 64> buf_int;
-            std::array<char, 64> buf_frac;
+            std::array<character, 64> buf_int;
+            std::array<character, 64> buf_frac;
             T tmp{*reinterpret_cast<T const*>(_object.data())};
             // std::cerr << "emit: " << std::setprecision(12) << tmp << std::endl;
             int int_part{static_cast<int>(tmp)};
             T Remainder{tmp - int_part};
             unsigned float_part{static_cast<unsigned>(Remainder * 1000000)};
-            itoa<SignHandling::NothingAndMinus>(int_part, std::span<char>(buf_int), 10);
-            itoa<SignHandling::MagnitudeOnly>(float_part, std::span<char>(buf_frac), 10);
-            std::string_view fracString{buf_frac.data()};
-            targ = std::string(buf_int.data()) + '.';
+            itoa<SignHandling::NothingAndMinus>(int_part, span(buf_int), 10);
+            itoa<SignHandling::MagnitudeOnly>(float_part, span(buf_frac), 10);
+            string_view fracString{buf_frac.data()};
+            targ.emit(string_view(buf_int.data()));
+            targ.emit('.');
             for (int i = fracString.size(); i < 6; ++i)
             {
-                targ = targ + '0';
+                targ.emit('0');
             }
-            targ = targ + fracString.data();
+            targ.emit(fracString);
             return true;
         }
     };
@@ -79,13 +79,12 @@ namespace eio
         public:
         virtual ~stringview_formatter(){};
         stringview_formatter(std::string_view param, std::string_view fmt = "")
-        : formatter(std::span<uint8_t const>(reinterpret_cast<uint8_t const*>(param.data()), param.size()), fmt)
+        : formatter(std::span<uint8_t const>(reinterpret_cast<character const*>(param.data()), param.size()), fmt)
         {}
-        bool emit(std::string& targ) override
+        bool emit(emitter& targ) override
         {
-            targ.clear();
-            auto tmp{std::string_view(reinterpret_cast<char const*>(_object.data()), _object.size())};
-            targ.append(tmp.begin(), tmp.end());
+            auto tmp{string_view(reinterpret_cast<character const*>(_object.data()), _object.size())};
+            targ.emit(tmp);
             return true;
         }
     };
@@ -96,19 +95,21 @@ namespace eio
         generic_formatter(std::span<uint8_t const> data, std::string_view fmt = "")
         : formatter(data, fmt)
         {}
-        bool emit(std::string& targ) override
+        bool emit(emitter& targ) override
         {
             constexpr std::array cNibblesLower{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-            targ = "[hex: ";
+            targ.emit("[hex: ");
             for ( auto val : _object)
             {
                 auto upper{(val >> 4) & 0x0f};
                 auto lower{val & 0x0f};
-                targ.push_back(cNibblesLower[upper]);
-                targ.push_back(cNibblesLower[lower]);
-                targ.push_back(' ');
+                targ.emit(cNibblesLower[upper]);
+                targ.emit(cNibblesLower[lower]);
+                targ.emit(' ');
             }
-            targ += "(" + std::to_string(_object.size()) + " bytes)]";
+            targ.emit('(');
+            int_formatter(_object.size()).emit(targ);
+            targ.emit(" bytes)]");
             return true;
         }
         protected:

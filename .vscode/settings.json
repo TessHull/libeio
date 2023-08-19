@@ -84,6 +84,7 @@
         "string_emitter": "cpp",
         "emitters": "cpp",
         "file_emitter": "cpp",
-        "output": "cpp"
+        "output": "cpp",
+        "types": "cpp"
     },
 }

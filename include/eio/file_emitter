@@ -5,28 +5,17 @@
 
 namespace eio
 {
-    class concrete_file_emitter: public basic_emitter<uint8_t>
+    class file_emitter: public emitter
     {
         public:
-        concrete_file_emitter(void* File);
-        concrete_file_emitter(std::string_view FilePath);
-        ~concrete_file_emitter();
-        bool emit(uint8_t arg) override;
-        bool emit(std::span<uint8_t const> arg) override;
+        file_emitter(void* File);
+        file_emitter(std::string_view FilePath);
+        ~file_emitter();
+        bool emit(character arg) override;
+        bool emit(string_view arg) override;
+        bool emit_span(cspan arg) override;
         private:
         void* _file{nullptr};
         bool _managePointer{false};
     };
-    template<typename T>
-    class basic_file_emitter: public basic_emitter<T>
-    {
-        public:
-        basic_file_emitter(void* File):_cfe(File){}
-        basic_file_emitter(std::string_view FilePath):_cfe(FilePath){}
-        bool emit(T arg)override{return _cfe.emit(static_cast<uint8_t>(arg));}
-        bool emit(std::span<T const> arg)override{return _cfe.emit(std::span<uint8_t const>(reinterpret_cast<uint8_t const*>(arg.data()), arg.size_bytes()));}
-        private:
-        concrete_file_emitter _cfe;
-    };
-    using file_emitter = basic_file_emitter<char>;
 }

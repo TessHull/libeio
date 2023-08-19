@@ -1,23 +1,43 @@
 #pragma once
+#include "types"
+#include <string_view>
 #include <span>
 
 namespace eio
 {
-    template<typename T>
-    class basic_emitter
+    class emitter
     {
         public:
-        virtual ~basic_emitter(){};
-        virtual bool emit(T arg) = 0;
-        virtual bool emit(std::span<T const> arg) = 0;
+        virtual ~emitter(){};
+        virtual bool emit(character arg) = 0;
+        virtual bool emit(string_view arg) = 0;
+        virtual bool emit(std::string_view arg)
+        {
+            return this->emit(string_view(reinterpret_cast<character const*>(arg.data()), arg.size()));
+        }
+        virtual bool emit(character const * arg)
+        {
+            return this->emit(string_view(arg));
+        }
+        virtual bool emit(char const * arg)
+        {
+            return this->emit(string_view(reinterpret_cast<character const*>(arg)));
+        }
+        virtual bool emit(character * arg)
+        {
+            return this->emit(string_view(arg));
+        }
+        virtual bool emit(char * arg)
+        {
+            return this->emit(string_view(reinterpret_cast<character const*>(arg)));
+        }
+        virtual bool emit_span(cspan arg) = 0;
     };
-    using emitter = basic_emitter<char>;
-    template<typename T>
-    class basic_span_emitter : public basic_emitter<T>
+    class span_emitter : public emitter
     {
         public:
-        basic_span_emitter(std::span<T> spn):_span(spn){}
-        bool emit(T arg) override
+        span_emitter(span spn):_span(spn){}
+        bool emit(character arg) override
         {
             if (_used < _span.size())
             {
@@ -27,7 +47,7 @@ namespace eio
             }
             return false;
         }
-        bool emit(std::span<T const> arg) override
+        bool emit(string_view arg) override
         {
             if (_used + arg.size() < _span.size())
             {
@@ -44,13 +64,29 @@ namespace eio
             }
             return false;
         }
-        std::span<T>::size_type size()const{return _used;}
-        std::span<T> span()const{return _span.subspan(0, _used);}
-        T* data()const{return _span.data();}
-        std::span<T>::size_type capacity()const{return _span.size();}
+        bool emit_span(cspan arg) override
+        {
+            if (_used + arg.size() < _span.size())
+            {
+                for(auto val: arg)
+                {
+                    if (val == '\0')
+                    {
+                        break;
+                    }
+                    _span[_used] = val;
+                    ++_used;
+                }
+                return true;
+            }
+            return false;
+        }
+        span::size_type size()const{return _used;}
+        span span()const{return _span.subspan(0, _used);}
+        character* data()const{return _span.data();}
+        span::size_type capacity()const{return _span.size();}
         private:
-        std::span<T> _span;
-        std::span<T>::size_type _used{0};
+        eio::span _span;
+        span::size_type _used{0};
     };
-    using span_emitter = basic_span_emitter<char>;
 }//namespace eio

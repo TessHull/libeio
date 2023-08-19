@@ -1,26 +1,55 @@
 #pragma once
 #include "emitters"
 #include <string>
+//#define EIO_IOSTR_DBG
+#ifdef EIO_IOSTR_DGB
+#include <iostream>
+#endif
 
 namespace eio
 {
-    template<typename T>
-    class basic_string_emitter: public basic_emitter<T>
+    class string_emitter: public emitter
     {
         public:
-        using str_type = std::basic_string<T, std::char_traits<T>, std::allocator<T>>;
-        basic_string_emitter(): _str(new str_type("")), _managePointer(true){}
-        basic_string_emitter(str_type & str): _str(&str){}
-        ~basic_string_emitter()
+        using str_type = std::string;
+        string_emitter(): _str(new str_type("")), _managePointer(true){}
+        string_emitter(str_type & str): _str(&str){}
+        ~string_emitter()
         {
             if (_managePointer)
             {
                 delete _str;
             }
         }
-        virtual bool emit(T arg){_str->append(1, arg); return true;}
-        virtual bool emit(std::span<T const> arg)
+        bool emit(character arg) override
         {
+            #ifdef EIO_IOSTR_DBG
+            while (_str == nullptr){}
+            std::clog << "Append singular character (" << arg << ")\n";
+            #endif
+            // _str->append(1, arg); 
+            _str->push_back(arg);
+            #ifdef EIO_IOSTR_DBG
+            for (auto cha: *_str)
+            {
+                std::clog << static_cast<unsigned>(cha) << std::endl;
+            }
+            #endif
+            return true;
+        }
+        bool emit_span(cspan arg) override
+        {
+            #ifdef EIO_IOSTR_DBG
+            std::clog << "Append span of character with len " << arg.size() << " ("<<arg.data()<<")\n";
+            #endif
+            _str->append(arg.begin(), arg.end());
+            return true;
+        }
+        bool emit(string_view arg) override
+        {
+            #ifdef EIO_IOSTR_DBG
+            std::clog << "Append sv of character with len " << arg.size() << " ("<<arg.data()<<")\n";
+            #endif
             _str->append(arg.begin(), arg.end());
             return true;
         }
@@ -32,5 +61,4 @@ namespace eio
         str_type* _str{nullptr};
         bool _managePointer{false};
     };
-    using string_emitter = basic_string_emitter<char>;
 }

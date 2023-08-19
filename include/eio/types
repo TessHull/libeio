@@ -1,1 +1,11 @@
 #pragma once
+#include <string_view>
+#include <span>
+
+namespace eio 
+{
+using character = unsigned char;
+using string_view = std::basic_string_view<character>;
+using span = std::span<character>;
+using cspan = std::span<character const>;
+}

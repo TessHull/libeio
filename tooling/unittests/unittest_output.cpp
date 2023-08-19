@@ -49,7 +49,7 @@ TEST(Output, CanOutputParams)
         std::string_view vec("Hello{} World!");
         std::string_view ret("Hello5 World!");
         uut.print(vec);
-        EXPECT_EQ(ret.length(), output.size());
+        EXPECT_EQ(ret.length(), output.size()) << output;
         EXPECT_STREQ(std::string(ret).c_str(), output.c_str());
     }
 }
