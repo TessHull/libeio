@@ -59,6 +59,10 @@ libeio's design goals are
 
 - not going to be achieved immediately
   - it is more important to prove the core concepts than to reimplement details to begin with
+- be usable for formatting text in ascii systems
+  - stretch goal: be usable sanely in utf-8 based systems
+    - this means not splitting characters
+  - stretch goal: be an aid for using VT100 control codes, especially as windows now supports them.
 - to not include std::locale
 - to be at-least 50% smaller in size than including iostreams
   - This is a failure bound. Smaller still is desired, but if I can't achieve 50% smaller, then this work will be abandoned as not worth the cost.
